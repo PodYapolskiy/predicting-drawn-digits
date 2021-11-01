@@ -10,10 +10,12 @@ RoadMap:
 
     Присоединение функционала к оболочке и окончание.
 """
-# import nn
-# import ui
 import numpy as np
 from PIL import Image
+from sklearn.neural_network import MLPClassifier
+import pickle
+
+from ui import UiApp
 
 
 def visualize_first():
@@ -30,9 +32,9 @@ def visualize_first():
     im.show()
 
 
-
-
 def main():
+    UiApp().run()
+
     with Image.open('image.png') as image:  # В теории можно сразу открывать в "L"
         # print(image.mode)  # RGBA
 
@@ -42,23 +44,28 @@ def main():
 
         # Возвращаем изображение в режиме "L", где будем брать только альфа-канал, то есть прозрачность
         image = image.getchannel(channel="A")
-        # image.save('i.png')
+        # image.save('image.png')
 
-    # print(image.getpixel(xy=(0, 0)))  # Индексы от 0 до 27 из-за размера 28 * 28 и индексирования с нуля
-    # print(image)
-
-    # Список
+    # Список значений альфа-канала всех 784 пикселей изобраэения
     pixels = []
     for y in range(28):
         for x in range(28):
+            # Индексы от 0 до 27 из-за размера 28 * 28 и индексирования с нуля
             pixels.append(image.getpixel(xy=(x, y)))
-    
+
+    # 2-мерный numpy массив
     data = np.array(pixels, ndmin=2)
 
-    from nn import make_prediction
-    print(make_prediction(data))
+    # Загружаем обученную модель
+    model: "MLPClassifier" = pickle.load(open("models/model.sav", "rb"))
+
+    # print(model.predict(data))
+    # Вероятности на каждую из 10 цифр
+    for index, probability in enumerate(model.predict_proba(data)[0]):
+        print(index, probability)
+
     # visualize_first()
-            
+
 
 if __name__ == "__main__":
     main()

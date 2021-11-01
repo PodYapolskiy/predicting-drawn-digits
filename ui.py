@@ -5,56 +5,24 @@ https://kivy.org/doc/stable/api-kivy.graphics.html#module-kivy.graphics
 Отсюда взята рисовалка - https://pythonprogramming.net/kivy-drawing-application-tutorial/
 """
 from kivy.app import App
-from kivy.uix.widget import Widget
 from kivy.core.window import Window
 
+from kivy.uix.widget import Widget
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
+from kivy.uix.progressbar import ProgressBar
 
 from kivy.graphics import Line
 
 
+import numpy as np
+from PIL import Image
+from sklearn.neural_network import MLPClassifier
+import pickle
+
+
 Window.size = (784, 784)  # Размеры окна приложения
-"""
-    1 28
-    2 56
-    3 84
-    4 112
-    5 140
-    6 168
-    7 196
-    8 224
-    9 252
-    10 280
-    11 308
-    12 336
-    13 364
-    14 392
-    15 420
-    16 448
-    17 476
-    18 504
-    19 532
-    20 560
-    21 588
-    22 616
-    23 644
-    24 672
-    25 700
-    26 728
-    27 756
-    28 784
-    29 812
-    30 840
-    31 868
-    32 896
-    33 924
-    34 952
-    35 980
-    36 1008
-    37 1036
-    38 1064
-    39 1092
-"""
+
 
 class Ui(Widget):
     def on_touch_down(self, touch):
@@ -70,14 +38,43 @@ class Ui(Widget):
         touch.ud["line"].points += (touch.x, touch.y)
 
     def on_touch_up(self, touch):
-        # print("RELEASED!", touch)
-        pass
+        """Метод, срабатывающий после отжимания пальца или мыши. В данном случае можно сразу предсказывать число после рисовки, чтобы не нажимать на кнопку.
+        """
+        # with Image.open('image.png') as image:  # В теории можно сразу открывать в "L"
+        #     # print(image.mode)  # RGBA
+
+        #     # Преобразовываем изображение от 784 на 784 в 28 * 28
+        #     image.thumbnail(size=(28, 28))
+        #     image.save("image.png")
+
+        #     # Возвращаем изображение в режиме "L", где будем брать только альфа-канал, то есть прозрачность
+        #     image = image.getchannel(channel="A")
+
+        # # Список значений альфа-канала всех 784 пикселей изобраэения
+        # pixels = []
+        # for y in range(28):
+        #     for x in range(28):
+        #         # Индексы от 0 до 27 из-за размера 28 * 28 и индексирования с нуля
+        #         pixels.append(image.getpixel(xy=(x, y)))
+
+        # # 2-мерный numpy массив
+        # data = np.array(pixels, ndmin=2)
+
+        # # Загружаем обученную модель
+        # model: "MLPClassifier" = pickle.load(open("models/model.sav", "rb"))
+
+        # # print(model.predict(data))
+        # # Вероятности на каждую из 10 цифр
+        # for index, probability in enumerate(model.predict_proba(data)[0]):
+        #     print(index, probability)
 
 
 class UiApp(App):
     def build(self):
         parent = Widget()
+
         self.ui = Ui()
+        self.ui.size_hint = (0.8, 1.0)
 
         # Кнопка, по нажатию на которую холст будет очищаться
         clear_btn = Button(
@@ -97,6 +94,9 @@ class UiApp(App):
         parent.add_widget(self.ui)
         parent.add_widget(clear_btn)
         parent.add_widget(predict_btn)
+
+        # pb = ProgressBar(max=100)
+        # parent.add_widget(pb)
 
         return parent
 
