@@ -1,1 +1,5 @@
+# Кэш
 __pycache__
+
+# Огромный датасет
+/datasets/mnist_784.csv
