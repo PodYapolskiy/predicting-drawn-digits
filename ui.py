@@ -28,12 +28,15 @@ Window.size = (WIDTH, HEIGHT) = (1000, 884)  # Размеры окна прил�
 class Canvas(Widget):
     """Холст, область 784 на 784, расположенная в позиции (0, 100), в которой можно рисовать"""
 
-    def __init__(self, **kwargs):
+    def __init__(self, predict_func, **kwargs):
         super().__init__(**kwargs)
 
         # Меняем размеры и положения холста относительно родителя
         self.size_hint = (784 / WIDTH, 784 / HEIGHT)
         self.pos_hint = {'x': 0, 'y': 100 / HEIGHT}
+
+        # Назначаем функцию предсказания
+        self.predict = predict_func
 
     def on_touch_down(self, touch):
         """Метод, срабатывающий при косании по холсту"""
@@ -57,7 +60,7 @@ class Canvas(Widget):
     def on_touch_up(self, touch):
         """Метод, срабатывающий после отжимания пальца или мыши. В данном случае можно сразу предсказывать число после рисовки, чтобы не нажимать на кнопку.
         """
-        pass
+        self.predict(self)  # Передаём self как instance
 
 
 class Probabilities(GridLayout):
@@ -72,8 +75,7 @@ class Probabilities(GridLayout):
 
         # Добавляем ряды в grid layout
         for num in range(10):
-            self.add_widget(
-                Label(text=f"{num}", bold=True, size_hint_x=(40 / 216)))
+            self.add_widget(Label(text=f"{num}", bold=True, size_hint_x=(40 / 216)))
             self.add_widget(ProgressBar(max=1))
 
 
@@ -83,8 +85,8 @@ class MainScreen(Screen):
     def __init__(self, **kw):
         super().__init__(**kw)
 
-        # Добавляем холст
-        self.ui = Canvas()  # !!! Засунуть функцию предсказания и передать в метод
+        # Добавляем холст, с переданной функцией предсказания
+        self.ui = Canvas(predict_func=self.predict_canvas)
         self.add_widget(self.ui)
 
         # Добавляем кнопку очищения
@@ -96,13 +98,13 @@ class MainScreen(Screen):
         self.add_widget(clear_btn)
 
         # Добавляем кнопку предсказания
-        predict_btn = Button(
-            text="Predict",  # "Predict"
-            on_release=self.predict_canvas,
+        screenshot_btn = Button(
+            text="Screenshot",
+            on_release=self.make_screenshot,
             size_hint=(392 / WIDTH, 100 / HEIGHT),
             pos_hint={'x': 392 / WIDTH, 'y': 0}
         )
-        self.add_widget(predict_btn)
+        self.add_widget(screenshot_btn)
 
         # Добавляем панель вероятностей
         self.probabilities = Probabilities(cols=2)
@@ -119,8 +121,7 @@ class MainScreen(Screen):
         self.add_widget(self.prediction_lbl)
 
         # Загружаем обученную нейросеть
-        self.predictor: "MLPClassifier" = pickle.load(
-            open("models/model.sav", "rb"))
+        self.predictor: "MLPClassifier" = pickle.load(open("models/model.sav", "rb"))
 
     def clear_canvas(self, instance):
         """Очистка холста, вероятностей и конечного предсказания"""
@@ -169,6 +170,10 @@ class MainScreen(Screen):
 
         # Отображаем конечное предсказание нейросети
         self.prediction_lbl.text = str(self.predictor.predict(data)[0])
+
+    def make_screenshot(self, instance):
+        """Скриншот окна программы, если хочется запомнить результат"""
+        self.export_to_png('i.png')
 
 
 class MainApp(App):
