@@ -1,8 +1,23 @@
 """Нейросеть, определяющая рукописное число.
 """
 import pandas as pd
+from PIL import Image
 from sklearn.neural_network import MLPClassifier
 import pickle
+
+
+def visualize_first():
+    from nn import first_picture
+
+    im = Image.new("L", (28, 28))
+
+    i = 0
+    for y in range(28):
+        for x in range(28):
+            im.putpixel(xy=(x, y), value=int(first_picture[i]))
+            i += 1
+
+    im.show()
 
 
 def main():
