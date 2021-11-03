@@ -6,6 +6,7 @@ https://kivy.org/doc/stable/api-kivy.graphics.html#module-kivy.graphics
 """
 from kivy.app import App
 from kivy.core.window import Window
+from kivy.graphics import Line
 
 from kivy.uix.label import Label
 from kivy.uix.widget import Widget
@@ -14,9 +15,7 @@ from kivy.uix.button import Button
 from kivy.uix.progressbar import ProgressBar
 from kivy.uix.screenmanager import Screen, ScreenManager
 
-from kivy.graphics import Line
-
-
+import os
 import numpy as np
 from PIL import Image
 from sklearn.neural_network import MLPClassifier
@@ -38,13 +37,8 @@ class Canvas(Widget):
 
     def on_touch_down(self, touch):
         """Метод, срабатывающий при косании по холсту"""
-        # print(f"X: {touch.x}, Y: {touch.y}")
-        # print(f"Right: {self.right}, Top: {self.top}; X: {self.x}, Y: {self.y}")
-        # print(self.size)
-        # print()
         # Проверяем входит ли точка касания в область холста
-        # touch.pos = [touch.x, touch.y]
-        if not self.collide_point(*touch.pos):
+        if not self.collide_point(*touch.pos):  # touch.pos = [touch.x, touch.y]
             return
 
         # Взаимодейтвуем схолстом. Начинаем новую линию
@@ -64,7 +58,7 @@ class Canvas(Widget):
         """Метод, срабатывающий после отжимания пальца или мыши. В данном случае можно сразу предсказывать число после рисовки, чтобы не нажимать на кнопку.
         """
         pass
-        
+
 
 class Probabilities(GridLayout):
     """Элемент, в котором отображаются предсказания вероятности того или иного числа нейросетью"""
@@ -78,7 +72,8 @@ class Probabilities(GridLayout):
 
         # Добавляем ряды в grid layout
         for num in range(10):
-            self.add_widget(Label(text=f"{num}", bold=True, size_hint_x=(40 / 216)))
+            self.add_widget(
+                Label(text=f"{num}", bold=True, size_hint_x=(40 / 216)))
             self.add_widget(ProgressBar(max=1))
 
 
@@ -89,7 +84,7 @@ class MainScreen(Screen):
         super().__init__(**kw)
 
         # Добавляем холст
-        self.ui = Canvas()
+        self.ui = Canvas()  # !!! Засунуть функцию предсказания и передать в метод
         self.add_widget(self.ui)
 
         # Добавляем кнопку очищения
@@ -123,48 +118,57 @@ class MainScreen(Screen):
         )
         self.add_widget(self.prediction_lbl)
 
+        # Загружаем обученную нейросеть
+        self.predictor: "MLPClassifier" = pickle.load(
+            open("models/model.sav", "rb"))
+
     def clear_canvas(self, instance):
-        """Очистка холста"""
+        """Очистка холста, вероятностей и конечного предсказания"""
         self.ui.canvas.clear()
+
+        for pb in self.probabilities.children[-2::-2]:
+            pb.value = 0
+
+        self.prediction_lbl.text = ""
 
     def predict_canvas(self, instance):
         """Предсказание холста
         """
-        self.ui.size = (Window.size[0], Window.size[1])
         self.ui.export_to_png('image.png')
 
         # Манипуляции с изображением холста
-        with Image.open("image.png") as image:  # ? В теории можно сразу открывать в "L"
+        with Image.open("image.png") as image:
             # Обрезаем холст с 1000 * 884 в 784 * 784
             image = image.crop(box=(0, 100, 784, 884))
 
             # Сжимаем изображение с 784 на 784 до 28 * 28
             image.thumbnail(size=(28, 28))
-            
+
             # Возвращаем изображение в режиме "L", где будем брать только альфа-канал, то есть прозрачность
             image = image.getchannel(channel="A")
             # image.save("i.png")
 
-        # Список значений альфа-канала всех 784 пикселей изобраэения
+        # Список значений альфа-канала всех 784 пикселей изображения
         pixels = []
         for y in range(28):
             for x in range(28):
                 # Индексы от 0 до 27 из-за размера 28 * 28 и индексирования с нуля
                 pixels.append(image.getpixel(xy=(x, y)))
 
+        # Удалить файл картинки
+        path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'image.png')
+        os.remove(path)
+
         # 2-мерный numpy массив
         data = np.array(pixels, ndmin=2)
-
-        # Загружаем обученную модель
-        model: "MLPClassifier" = pickle.load(open("models/model.sav", "rb"))
 
         # Вероятности на каждую из 10 цифр
         # Элементы в списке расположены в обратном поряждке, Label и Progressbar чередуются
         for i, el in enumerate(self.probabilities.children[-2::-2]):
-            el.value = float(model.predict_proba(data)[0][i])
+            el.value = float(self.predictor.predict_proba(data)[0][i])
 
         # Отображаем конечное предсказание нейросети
-        self.prediction_lbl.text = str(model.predict(data)[0])
+        self.prediction_lbl.text = str(self.predictor.predict(data)[0])
 
 
 class MainApp(App):
