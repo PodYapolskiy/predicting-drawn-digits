@@ -144,21 +144,16 @@ class MainScreen(Screen):
         self.prediction_lbl.text = ""
 
     def predict_canvas(self, instance):
-        """Предсказание холста
-        """
-        self.ui.export_to_png('image.png')
+        """Предсказание холста"""
+        self.ui.export_to_png('image.png')  # Картинка холста 784 на 784
 
         # Манипуляции с изображением холста
         with Image.open("image.png") as image:
-            # Обрезаем холст с 1000 * 884 в 784 * 784
-            image = image.crop(box=(0, 100, 784, 884))
-
             # Сжимаем изображение с 784 на 784 до 28 * 28
             image.thumbnail(size=(28, 28))
 
             # Возвращаем изображение в режиме "L", где будем брать только альфа-канал, то есть прозрачность
             image = image.getchannel(channel="A")
-            # image.save("i.png")
 
         # Список значений альфа-канала всех 784 пикселей изображения
         pixels = []
