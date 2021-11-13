@@ -29,7 +29,6 @@ from kivy.graphics import Line
 from kivy.utils import get_color_from_hex
 
 from kivy.uix.widget import Widget
-from kivy.uix.button import Button
 from kivy.uix.screenmanager import Screen, ScreenManager
 
 from kivymd.app import MDApp
@@ -120,10 +119,10 @@ class Probabilities(MDFloatLayout, MDLabel):
         # Задаём размеры и позици, относительные внутри элемента родителя
         self.size_hint = (296 / WIDTH, 503 / HEIGHT)
         self.pos_hint = {'x': 504 / WIDTH, 'y': 147 / HEIGHT}
-
+        # Белый фон
         self.md_bg_color = [1, 1, 1, 1]
 
-        # Добавляем ряды в grid layout
+        # Добавляем ряды во floatlayout
         for num in range(9, -1, -1):
             # Добавление слоя с цифрой
             self.add_widget(MDLabel(
@@ -140,7 +139,6 @@ class Probabilities(MDFloatLayout, MDLabel):
             # Добавление прогрессбара
             self.add_widget(MDProgressBar(
                 max=1,
-                value=(9 - num + 1) / 10,
                 size_hint=(180 / 296, 48 / 504),
                 pos_hint={'x': 200 / WIDTH, 'y': (60 * num + 35) / HEIGHT}  # 60 - расстояние между строками; 35 - сдвиг от нуля
             ))
@@ -152,7 +150,6 @@ class Probabilities(MDFloatLayout, MDLabel):
                 halign="right",
                 size_hint=(180 / 296, 48 / 504),
                 pos_hint={'x': 200 / WIDTH, 'y': (60 * num + 18) / HEIGHT}
-                
             ))
 
 
@@ -163,7 +160,7 @@ class MainScreen(Screen):
         super().__init__(**kw)
 
         # Добавляем холст, с переданной функцией предсказания
-        self.ui = Canvas(predict_f=self.predict_canvas)
+        self.ui = Canvas(predict_f=self.predict_canvas)  # self.predict_canvas)
         self.add_widget(self.ui)
 
         # Добавляем кнопку очищения
@@ -218,8 +215,11 @@ class MainScreen(Screen):
         """Очистка холста, вероятностей и конечного предсказания"""
         self.ui.canvas.clear()
 
-        # for pb in self.probabilities.children[-2::-2]:
-        #     pb.value = 0
+        for pb in self.probabilities.children[-2::-3]:
+            pb.value = 0
+
+        for p in self.probabilities.children[-3::-3]:
+            p.text = "0%"
 
         self.prediction_lbl.text = "?"
 
@@ -243,22 +243,50 @@ class MainScreen(Screen):
                 pixels.append(image.getpixel(xy=(x, y)))
 
         # Удалить файл картинки
-        path = os.path.join(os.path.abspath(
-            os.path.dirname(__file__)), 'image.png')
+        path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'image.png')
         os.remove(path)
 
         # 2-мерный numpy массив
         data = np.array(pixels, ndmin=2)
-
+        
+        
+        def converter(num: float) -> int:
+            s = str(num)
+            if s.count("e") == 1:
+                return 0
+            
+            s = s[2:5]
+            
+            if int(s[2]) > 4 and s[1] != "9":  # n % 10
+                s = s[0] + str(int(s[1]) + 1) 
+            elif s[0] != "9" and s[1] == "9":
+                s = str(int(s[0]) + 1) + "0"
+            else:
+                s = s[:-1]
+            
+            return int(s)
+                
+        
+        for i, el in enumerate(self.probabilities.children[-3::-3]):
+            el.text = f"{converter(float(self.predictor.predict_proba(data)[0][i]))}%"
+            # print(i, f"{converter(float(self.predictor.predict_proba(data)[0][i]))}%")
+        
         # Вероятности на каждую из 10 цифр
         # Элементы в списке расположены в обратном поряждке, Label и Progressbar чередуются
-        for i, el in enumerate(self.probabilities.children[-2::-2]):
+        for i, el in enumerate(self.probabilities.children[-2::-3]):
             el.value = float(self.predictor.predict_proba(data)[0][i])
 
         # Отображаем конечное предсказание нейросети
         self.prediction_lbl.text = str(self.predictor.predict(data)[0])
 
-    def save_image(self):
+    def predict(self, instance):
+        print("predict")
+        
+        for i, el in enumerate(self.probabilities.children[-3::-3]):
+            print(i, el.text)
+            # print(float(self.predictor.predict_proba(data)[0][i]))
+    
+    def save_image(self, instance):
         print("save")
 
     def make_screenshot(self, instance):
