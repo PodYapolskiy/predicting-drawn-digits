@@ -15,16 +15,8 @@ https://kivy.org/doc/stable/api-kivy.graphics.html#module-kivy.graphics
 
 Отсюда взята рисовалка - https://pythonprogramming.net/kivy-drawing-application-tutorial/
 """
-from kivy.app import App
-from kivy.core.window import Window
-from kivy.graphics import Line
-
-from kivy.uix.label import Label
-from kivy.uix.widget import Widget
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.button import Button
-from kivy.uix.progressbar import ProgressBar
-from kivy.uix.screenmanager import Screen, ScreenManager
+import kivy
+kivy.require('2.0.0')
 
 import os
 import numpy as np
@@ -32,27 +24,43 @@ from PIL import Image
 from sklearn.neural_network import MLPClassifier
 import pickle
 
+from kivy.core.window import Window
+from kivy.graphics import Line
+from kivy.utils import get_color_from_hex
 
-Window.size = (WIDTH, HEIGHT) = (1000, 884)  # Размеры окна приложения
+from kivy.uix.widget import Widget
+from kivy.uix.button import Button
+from kivy.uix.screenmanager import Screen, ScreenManager
+
+from kivymd.app import MDApp
+from kivymd.color_definitions import colors
+from kivymd.uix.floatlayout import MDFloatLayout
+from kivymd.uix.progressbar import MDProgressBar
+from kivymd.uix.button import MDRaisedButton, MDFlatButton
+from kivymd.uix.label import MDLabel
+
+
+Window.size = (WIDTH, HEIGHT) = (800, 650)  # Размеры окна приложения
 
 
 class Canvas(Widget):
-    """Холст, область 784 на 784, расположенная в позиции (0, 100), в которой можно рисовать"""
+    """Холст, область 504 на 504, расположенная в позиции (0, 146), в которой можно рисовать"""
 
-    def __init__(self, predict_func, **kwargs):
+    def __init__(self, predict_f, **kwargs):
         super().__init__(**kwargs)
 
         # Меняем размеры и положения холста относительно родителя
-        self.size_hint = (784 / WIDTH, 784 / HEIGHT)
-        self.pos_hint = {'x': 0, 'y': 100 / HEIGHT}
+        self.size_hint = (504 / WIDTH, 504 / HEIGHT)
+        self.pos_hint = {'x': 0, 'y': 146 / HEIGHT}
 
         # Назначаем функцию предсказания
-        self.predict = predict_func
+        self.predict = predict_f
 
     def on_touch_down(self, touch):
         """Метод, срабатывающий при косании по холсту"""
         # Проверяем входит ли точка касания в область холста
-        if not self.collide_point(*touch.pos):  # touch.pos = [touch.x, touch.y]
+        # touch.pos = [touch.x, touch.y]
+        if not self.collide_point(*touch.pos):
             return
 
         # Взаимодейтвуем схолстом. Начинаем новую линию
@@ -74,20 +82,78 @@ class Canvas(Widget):
         self.predict(self)  # Передаём self как instance
 
 
-class Probabilities(GridLayout):
+'''
+class Probabilities(MDGridLayout, MDLabel):
     """Элемент, в котором отображаются предсказания вероятности того или иного числа нейросетью"""
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         # Задаём размеры и позици, относительные внутри элемента родителя
-        self.size_hint = (200 / WIDTH, 584 / HEIGHT)
-        self.pos_hint = {'x': 784 / WIDTH, 'y': 100 / HEIGHT}
-
+        self.size_hint = (296 / WIDTH, 503 / HEIGHT)
+        self.pos_hint = {'x': 504 / WIDTH, 'y': 147 / HEIGHT}
+        
+        #! self.md_bg_color=[1, 1, 1, 1]
+        
         # Добавляем ряды в grid layout
         for num in range(10):
-            self.add_widget(Label(text=f"{num}", bold=True, size_hint_x=(40 / 216)))
-            self.add_widget(ProgressBar(max=1))
+            self.add_widget(MDLabel(
+                text=f"{num}", 
+                theme_text_color="Custom",
+                text_color=(255 / 255, 152 / 255, 0, 1),
+                
+                bold=True,
+                font_style="H4",
+                size_hint_x=(40 / 296)
+            ))
+            self.add_widget(MDProgressBar())
+            # self.add_widget(Probability(num))
+'''
+
+
+class Probabilities(MDFloatLayout, MDLabel):
+    """Элемент, в котором отображаются предсказания вероятности того или иного числа нейросетью"""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # Задаём размеры и позици, относительные внутри элемента родителя
+        self.size_hint = (296 / WIDTH, 503 / HEIGHT)
+        self.pos_hint = {'x': 504 / WIDTH, 'y': 147 / HEIGHT}
+
+        self.md_bg_color = [1, 1, 1, 1]
+
+        # Добавляем ряды в grid layout
+        for num in range(9, -1, -1):
+            # Добавление слоя с цифрой
+            self.add_widget(MDLabel(
+                text=f"{9 - num}",
+                theme_text_color="Custom",
+                text_color=(255 / 255, 152 / 255, 0, 1),  # Оранжевый
+                # text_color=(0, 0, 0, 1),
+
+                bold=True,
+                font_style="H3",
+                size_hint=(40 / 296, 48 / 504),
+                pos_hint={'x': 60 / WIDTH, 'y': (60 * num + 25) / HEIGHT}
+            ))
+            # Добавление прогрессбара
+            self.add_widget(MDProgressBar(
+                max=1,
+                value=(9 - num + 1) / 10,
+                size_hint=(180 / 296, 48 / 504),
+                pos_hint={'x': 200 / WIDTH, 'y': (60 * num + 35) / HEIGHT}  # 60 - расстояние между строками; 35 - сдвиг от нуля
+            ))
+            # Добавление процентов
+            self.add_widget(MDLabel(
+                text="0%",
+                theme_text_color="Custom",
+                text_color=(0, 0, 0, 0.7),
+                halign="right",
+                size_hint=(180 / 296, 48 / 504),
+                pos_hint={'x': 200 / WIDTH, 'y': (60 * num + 18) / HEIGHT}
+                
+            ))
 
 
 class MainScreen(Screen):
@@ -97,37 +163,51 @@ class MainScreen(Screen):
         super().__init__(**kw)
 
         # Добавляем холст, с переданной функцией предсказания
-        self.ui = Canvas(predict_func=self.predict_canvas)
+        self.ui = Canvas(predict_f=self.predict_canvas)
         self.add_widget(self.ui)
 
         # Добавляем кнопку очищения
-        clear_btn = Button(
-            text="Clear",
+        clear_btn = MDRaisedButton(
+            text="[color=#ffffff][b]clear[/b][/color]",
+            # theme_text_color="Custom",
+            font_size='40sp',
+            size_hint=(146 / WIDTH, 146 / HEIGHT),
             on_release=self.clear_canvas,
-            size_hint=(392 / WIDTH, 100 / HEIGHT)
         )
         self.add_widget(clear_btn)
 
-        # Добавляем кнопку предсказания
-        screenshot_btn = Button(
-            text="Screenshot",
-            on_release=self.make_screenshot,
-            size_hint=(392 / WIDTH, 100 / HEIGHT),
-            pos_hint={'x': 392 / WIDTH, 'y': 0}
+        # Добавляем сохранения холста
+        save_btn = MDFlatButton(
+            text="[color=#ffffff][b]save[/b][/color]",
+            # text_color=(1, 1, 1, 0),
+            # theme_text_color="Custom",
+            md_bg_color=(1, 1, 1, 1),
+            font_size='40sp',
+            
+            size_hint=(358 / WIDTH, 146 / HEIGHT),
+            pos_hint={'x': 147 / WIDTH},
+            
+            on_release=self.save_image,
         )
-        self.add_widget(screenshot_btn)
+        self.add_widget(save_btn)
 
         # Добавляем панель вероятностей
-        self.probabilities = Probabilities(cols=2)
+        self.probabilities = Probabilities()
         self.add_widget(self.probabilities)
 
         # Добавляем слой с отображением конечного предказания нейросети
-        self.prediction_lbl = Label(
+        self.prediction_lbl = MDLabel(
+            theme_text_color="Custom",
+            text_color=(255 / 255, 152 / 255, 0, 1),
+            md_bg_color=[1, 1, 1, 1],
+
             text="?",
-            font_size='20sp',
+            font_style="H1",
             bold=True,
-            size_hint=(216 / WIDTH, 100 / HEIGHT),
-            pos_hint={'x': 784 / WIDTH}
+
+            halign="center",
+            size_hint=(296 / WIDTH, 146 / HEIGHT),
+            pos_hint={'x': 504 / WIDTH}
         )
         self.add_widget(self.prediction_lbl)
 
@@ -138,14 +218,14 @@ class MainScreen(Screen):
         """Очистка холста, вероятностей и конечного предсказания"""
         self.ui.canvas.clear()
 
-        for pb in self.probabilities.children[-2::-2]:
-            pb.value = 0
+        # for pb in self.probabilities.children[-2::-2]:
+        #     pb.value = 0
 
-        self.prediction_lbl.text = ""
+        self.prediction_lbl.text = "?"
 
     def predict_canvas(self, instance):
         """Предсказание холста"""
-        self.ui.export_to_png('image.png')  # Картинка холста 784 на 784
+        self.ui.export_to_png('image.png')  # Картинка холста 504 на 504
 
         # Манипуляции с изображением холста
         with Image.open("image.png") as image:
@@ -163,7 +243,8 @@ class MainScreen(Screen):
                 pixels.append(image.getpixel(xy=(x, y)))
 
         # Удалить файл картинки
-        path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'image.png')
+        path = os.path.join(os.path.abspath(
+            os.path.dirname(__file__)), 'image.png')
         os.remove(path)
 
         # 2-мерный numpy массив
@@ -177,16 +258,24 @@ class MainScreen(Screen):
         # Отображаем конечное предсказание нейросети
         self.prediction_lbl.text = str(self.predictor.predict(data)[0])
 
+    def save_image(self):
+        print("save")
+
     def make_screenshot(self, instance):
         """Скриншот окна программы, если хочется запомнить результат"""
         self.export_to_png('i.png')
 
 
-class MainApp(App):
+class MainApp(MDApp):
     """Основной класс интерфейса программы
     """
 
     def build(self):
+        # get_color_from_hex(colors["Orange"]["900"])
+        self.theme_cls.primary_palette = "Orange"
+        self.theme_cls.primary_hue = '500'
+        self.theme_cls.theme_style = 'Dark'  # Тёмная тема
+
         screen_manager = ScreenManager()
         screen_manager.add_widget(MainScreen(name="main_screen"))
 
