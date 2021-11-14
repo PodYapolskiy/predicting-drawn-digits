@@ -2,7 +2,7 @@
 
 Предсказывание нарисованных цифр. Приложение реализовано с помощью фреймворка [kivy](https://kivy.org/) для создания графического интерфейса и библиотеки [scikit-learn](https://scikit-learn.org/stable/) для машинного обучения. Модели нейросетей обучаются на базе данных [MNIST](<https://ru.wikipedia.org/wiki/MNIST_(%D0%B1%D0%B0%D0%B7%D0%B0_%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)>).
 
-![Гифка](https://media.giphy.com/media/mFa7TiJZvT4SB3rl8Z/giphy.gif)
+![Гифка](https://media.giphy.com/media/g05GUQPEqQzbjYGAbJ/giphy.gif)
 
 <!-- ![Гифка](https://media.giphy.com/media/vFKqnCdLPNOKc/giphy.gif) -->
 
