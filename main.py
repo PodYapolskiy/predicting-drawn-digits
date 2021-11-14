@@ -1,17 +1,8 @@
 """Основной файл проекта
-
 Суть программы: пользователь может рисовать цифры в разрешением 28 * 28, а нейросеть должна предсказать, какое число нарисовано.
-
-RoadMap:
-    Интерфейс, где пользователь может рисовать и  последствии это переведётся в картинку 28 * 28 и переведётся в numpy array.
     
-    Неросеть: установка весов, чтобы каждый раз не обучать заново
-    https://www.machinelearningmastery.ru/save-load-machine-learning-models-python-scikit-learn/
-
-
-Интерфейс приложения, осуществлённый при помощи библиотеки kivy.
-
-https://kivy.org/doc/stable/api-kivy.graphics.html#module-kivy.graphics
+Неросеть: установка весов, чтобы каждый раз не обучать заново
+https://www.machinelearningmastery.ru/save-load-machine-learning-models-python-scikit-learn/
 
 Отсюда взята рисовалка - https://pythonprogramming.net/kivy-drawing-application-tutorial/
 """
@@ -26,13 +17,11 @@ import pickle
 
 from kivy.core.window import Window
 from kivy.graphics import Line
-from kivy.utils import get_color_from_hex
 
 from kivy.uix.widget import Widget
 from kivy.uix.screenmanager import Screen, ScreenManager
 
 from kivymd.app import MDApp
-from kivymd.color_definitions import colors
 from kivymd.uix.floatlayout import MDFloatLayout
 from kivymd.uix.progressbar import MDProgressBar
 from kivymd.uix.button import MDRaisedButton, MDFlatButton
@@ -76,38 +65,8 @@ class Canvas(Widget):
             touch.ud["line"].points += (touch.x, touch.y)
 
     def on_touch_up(self, touch):
-        """Метод, срабатывающий после отжимания пальца или мыши. В данном случае можно сразу предсказывать число после рисовки, чтобы не нажимать на кнопку.
-        """
+        """Метод, срабатывающий после отжимания пальца или мыши. В данном случае можно сразу предсказывать число после рисовки, чтобы не нажимать на кнопку."""
         self.predict(self)  # Передаём self как instance
-
-
-'''
-class Probabilities(MDGridLayout, MDLabel):
-    """Элемент, в котором отображаются предсказания вероятности того или иного числа нейросетью"""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        # Задаём размеры и позици, относительные внутри элемента родителя
-        self.size_hint = (296 / WIDTH, 503 / HEIGHT)
-        self.pos_hint = {'x': 504 / WIDTH, 'y': 147 / HEIGHT}
-        
-        #! self.md_bg_color=[1, 1, 1, 1]
-        
-        # Добавляем ряды в grid layout
-        for num in range(10):
-            self.add_widget(MDLabel(
-                text=f"{num}", 
-                theme_text_color="Custom",
-                text_color=(255 / 255, 152 / 255, 0, 1),
-                
-                bold=True,
-                font_style="H4",
-                size_hint_x=(40 / 296)
-            ))
-            self.add_widget(MDProgressBar())
-            # self.add_widget(Probability(num))
-'''
 
 
 class Probabilities(MDFloatLayout, MDLabel):
@@ -159,32 +118,27 @@ class MainScreen(Screen):
     def __init__(self, **kw):
         super().__init__(**kw)
 
-        # Добавляем холст, с переданной функцией предсказания
-        self.ui = Canvas(predict_f=self.predict_canvas)  # self.predict_canvas)
+        # Добавляем холст с переданной функцией предсказания
+        self.ui = Canvas(predict_f=self.predict_canvas)
         self.add_widget(self.ui)
 
         # Добавляем кнопку очищения
         clear_btn = MDRaisedButton(
             text="[color=#ffffff][b]clear[/b][/color]",
-            # theme_text_color="Custom",
             font_size='40sp',
             size_hint=(146 / WIDTH, 146 / HEIGHT),
             on_release=self.clear_canvas,
         )
         self.add_widget(clear_btn)
 
-        # Добавляем сохранения холста
+        # Добавляем кнопку сохранения холста
         save_btn = MDFlatButton(
             text="[color=#ffffff][b]save[/b][/color]",
-            # text_color=(1, 1, 1, 0),
-            # theme_text_color="Custom",
             md_bg_color=(1, 1, 1, 1),
             font_size='40sp',
-            
             size_hint=(358 / WIDTH, 146 / HEIGHT),
             pos_hint={'x': 147 / WIDTH},
-            
-            on_release=self.save_image,
+            on_release=self.save_canvas,
         )
         self.add_widget(save_btn)
 
@@ -197,11 +151,9 @@ class MainScreen(Screen):
             theme_text_color="Custom",
             text_color=(255 / 255, 152 / 255, 0, 1),
             md_bg_color=[1, 1, 1, 1],
-
             text="?",
             font_style="H1",
             bold=True,
-
             halign="center",
             size_hint=(296 / WIDTH, 146 / HEIGHT),
             pos_hint={'x': 504 / WIDTH}
@@ -218,8 +170,8 @@ class MainScreen(Screen):
         for pb in self.probabilities.children[-2::-3]:
             pb.value = 0
 
-        for p in self.probabilities.children[-3::-3]:
-            p.text = "0%"
+        for pb in self.probabilities.children[-3::-3]:
+            pb.text = "0%"
 
         self.prediction_lbl.text = "?"
 
@@ -229,20 +181,17 @@ class MainScreen(Screen):
 
         # Манипуляции с изображением холста
         with Image.open("image.png") as image:
-            # Сжимаем изображение с 784 на 784 до 28 * 28
+            # Сжимаем изображение до 28 * 28
             image.thumbnail(size=(28, 28))
-
             # Возвращаем изображение в режиме "L", где будем брать только альфа-канал, то есть прозрачность
             image = image.getchannel(channel="A")
 
-        # Список значений альфа-канала всех 784 пикселей изображения
-        pixels = []
+        pixels = []  # Список значений альфа-канала всех 784 пикселей изображения
         for y in range(28):
             for x in range(28):
-                # Индексы от 0 до 27 из-за размера 28 * 28 и индексирования с нуля
-                pixels.append(image.getpixel(xy=(x, y)))
+                pixels.append(image.getpixel(xy=(x, y)))  # Индексы от 0 до 27 из-за размера 28 * 28 и индексирования с нуля
 
-        # Удалить файл картинки
+        # Удаление файла картинки
         path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'image.png')
         os.remove(path)
 
@@ -250,14 +199,15 @@ class MainScreen(Screen):
         data = np.array(pixels, ndmin=2)
         
         
-        def converter(num: float) -> int:
+        def convert(num: float) -> int:
+            """Функция, которая приводит из вещественного значения вероятности в целочисленное значение"""
             s = str(num)
             if s.count("e") == 1:
                 return 0
             
             s = s[2:5]
             
-            if int(s[2]) > 4 and s[1] != "9":  # n % 10
+            if int(s[2]) > 4 and s[1] != "9":
                 s = s[0] + str(int(s[1]) + 1) 
             elif s[0] != "9" and s[1] == "9":
                 s = str(int(s[0]) + 1) + "0"
@@ -267,39 +217,26 @@ class MainScreen(Screen):
             return int(s)
                 
         
-        for i, el in enumerate(self.probabilities.children[-3::-3]):
-            el.text = f"{converter(float(self.predictor.predict_proba(data)[0][i]))}%"
-            # print(i, f"{converter(float(self.predictor.predict_proba(data)[0][i]))}%")
-        
         # Вероятности на каждую из 10 цифр
-        # Элементы в списке расположены в обратном поряждке, Label и Progressbar чередуются
+        # Элементы в списке расположены в обратном поряждке, MDLabel, MDProgressBar и MDLabel чередуются
+        for i, el in enumerate(self.probabilities.children[-3::-3]):
+            el.text = f"{convert(float(self.predictor.predict_proba(data)[0][i]))}%"
+        
         for i, el in enumerate(self.probabilities.children[-2::-3]):
             el.value = float(self.predictor.predict_proba(data)[0][i])
 
         # Отображаем конечное предсказание нейросети
         self.prediction_lbl.text = str(self.predictor.predict(data)[0])
-
-    def predict(self, instance):
-        print("predict")
-        
-        for i, el in enumerate(self.probabilities.children[-3::-3]):
-            print(i, el.text)
-            # print(float(self.predictor.predict_proba(data)[0][i]))
     
-    def save_image(self, instance):
-        print("save")
-
-    def make_screenshot(self, instance):
-        """Скриншот окна программы, если хочется запомнить результат"""
-        self.export_to_png('i.png')
+    def save_canvas(self, instance):
+        """Сохраняеь картинку холста"""
+        self.ui.export_to_png('images/image.png')
 
 
 class MainApp(MDApp):
-    """Основной класс интерфейса программы
-    """
+    """Основной класс интерфейса программы"""
 
     def build(self):
-        # get_color_from_hex(colors["Orange"]["900"])
         self.theme_cls.primary_palette = "Orange"
         self.theme_cls.primary_hue = '500'
         self.theme_cls.theme_style = 'Dark'  # Тёмная тема
