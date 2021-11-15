@@ -167,12 +167,17 @@ class MainScreen(Screen):
         """Очистка холста, вероятностей и конечного предсказания"""
         self.ui.canvas.clear()
 
-        for pb in self.probabilities.children[-2::-3]:
-            pb.value = 0
-
+        # Очищаем все поля процентов (цвета и числа)
         for pb in self.probabilities.children[-3::-3]:
             pb.text = "0%"
+            pb.text_color = (0, 0, 0, 1)
 
+        # Очищаем прогрессбары (цвета и значения)
+        for pb in self.probabilities.children[-2::-3]:
+            pb.value = 0
+            pb.color = (1, 152 / 255, 0, 1)
+
+        # Очистка финального предсказания
         self.prediction_lbl.text = "?"
 
     def predict_canvas(self, instance):
@@ -216,18 +221,32 @@ class MainScreen(Screen):
             
             return int(s)
                 
+                
+        # После каждого обновления холста очищаем цвета в прогрессбарах и полях процентах
+        for pb in self.probabilities.children[-3::-3]:
+            pb.text_color = (0, 0, 0, 1)
+        
+        for pb in self.probabilities.children[-2::-3]:
+            pb.color = (1, 152 / 255, 0, 1)
+            
+        prediction = self.predictor.predict(data)[0]  # Цифра - конечное предсказание нейросети
+        self.prediction_lbl.text = str(prediction)  # Отображаем конечное предсказание
         
         # Вероятности на каждую из 10 цифр
         # Элементы в списке расположены в обратном поряждке, MDLabel, MDProgressBar и MDLabel чередуются
         for i, el in enumerate(self.probabilities.children[-3::-3]):
             el.text = f"{convert(float(self.predictor.predict_proba(data)[0][i]))}%"
+            
+            if i == prediction:
+                el.theme_text_color="Custom"
+                el.text_color=(64 / 255, 199 / 255, 109 / 255, 1)
         
         for i, el in enumerate(self.probabilities.children[-2::-3]):
             el.value = float(self.predictor.predict_proba(data)[0][i])
+            
+            if i == prediction:
+                el.color = (64 / 255, 199 / 255, 109 / 255, 1)
 
-        # Отображаем конечное предсказание нейросети
-        self.prediction_lbl.text = str(self.predictor.predict(data)[0])
-    
     def save_canvas(self, instance):
         """Сохраняеь картинку холста"""
         self.ui.export_to_png('images/image.png')
