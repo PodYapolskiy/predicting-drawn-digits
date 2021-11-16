@@ -13,6 +13,7 @@ import os
 import numpy as np
 from PIL import Image
 from sklearn.neural_network import MLPClassifier
+from datetime import datetime
 import pickle
 
 from kivy.core.window import Window
@@ -127,6 +128,7 @@ class MainScreen(Screen):
             text="[color=#ffffff][b]clear[/b][/color]",
             font_size='40sp',
             size_hint=(146 / WIDTH, 146 / HEIGHT),
+            pos_hint={'x': 0, 'y': 0},
             on_release=self.clear_canvas,
         )
         self.add_widget(clear_btn)
@@ -137,7 +139,7 @@ class MainScreen(Screen):
             md_bg_color=(1, 1, 1, 1),
             font_size='40sp',
             size_hint=(358 / WIDTH, 146 / HEIGHT),
-            pos_hint={'x': 147 / WIDTH},
+            pos_hint={'x': 147 / WIDTH, 'y': 0},
             on_release=self.save_canvas,
         )
         self.add_widget(save_btn)
@@ -248,10 +250,11 @@ class MainScreen(Screen):
                 el.color = (64 / 255, 199 / 255, 109 / 255, 1)
 
     def save_canvas(self, instance):
-        """Сохраняеь картинку холста"""
-        self.ui.export_to_png('images/image.png')
-
-
+        """Сохраняет картинку холста. Сохраняет файл с названием в виде даты. Так как `:` не может быть в имени файла, заменено на `;`."""
+        dt = datetime.now()  # Нанешняя дата
+        filename = f"{dt.day}.{dt.month}.{dt.year} {dt.hour};{dt.minute};{dt.second}"
+        self.ui.export_to_png(f'images/{filename}.png')
+        
 class MainApp(MDApp):
     """Основной класс интерфейса программы"""
 
